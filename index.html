@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công cụ Vẽ Đồ Thị Hàm Số - Chuẩn Sư Phạm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: { enableMenu: false }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .step-box { border-left: 6px solid #1e40af; background-color: #f8fafc; }
+        .method-btn.active { background-color: #1e40af; color: white; border-color: #1e40af; }
+        canvas { background-color: #ffffff; cursor: grab; }
+        canvas:active { cursor: grabbing; }
+        table th, table td { border: 1px solid #cbd5e1; padding: 0.5rem; text-align: center; }
+        #fullscreen-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 9999; padding: 20px; flex-direction: column;
+        }
+        #fullscreen-overlay.active { display: flex; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen py-10 px-4">
+    <div id="main-content" class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden mb-8 border border-slate-200">
+            <div class="bg-blue-800 p-6 text-white text-center">
+                <h1 class="text-2xl md:text-3xl font-bold uppercase tracking-wide text-white">Vẽ Đồ Thị - Chuẩn Sư Phạm Việt Nam</h1>
+                <p class="mt-2 opacity-90 italic">Trục đậm nét • Không lệch tâm khi Zoom • Hiện tọa độ điểm</p>
+            </div>
+            
+            <div class="p-8">
+                <div class="mb-8 p-6 bg-blue-50 rounded-xl border border-blue-100 text-center">
+                    <label class="block text-sm font-bold text-blue-900 uppercase mb-4">Lựa chọn loại hàm số</label>
+                    <div class="flex flex-col md:flex-row gap-4 justify-center">
+                        <button id="btnBacNhat" onclick="selectType('linear')" class="method-btn active px-8 py-3 rounded-lg border-2 border-blue-200 font-bold transition-all shadow-sm">
+                            Hàm bậc nhất ($y = ax + b$)
+                        </button>
+                        <button id="btnBacHai" onclick="selectType('quadratic')" class="method-btn px-8 py-3 rounded-lg border-2 border-blue-200 font-bold transition-all shadow-sm">
+                            Hàm bậc hai ($y = ax^2$)
+                        </button>
+                    </div>
+                    <input type="hidden" id="selectedType" value="linear">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div>
+                        <label class="text-sm font-bold text-slate-600 uppercase ml-1">Hệ số $a$</label>
+                        <input type="number" id="inputA" step="any" class="w-full text-xl border-2 border-slate-300 rounded-xl p-4 focus:border-blue-600 focus:outline-none shadow-inner" placeholder="Nhập a...">
+                    </div>
+                    <div id="containerB">
+                        <label class="text-sm font-bold text-slate-600 uppercase ml-1">Hệ số $b$</label>
+                        <input type="number" id="inputB" step="any" class="w-full text-xl border-2 border-slate-300 rounded-xl p-4 focus:border-blue-600 focus:outline-none shadow-inner" placeholder="Nhập b...">
+                    </div>
+                </div>
+
+                <button onclick="drawGraph()" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-5 rounded-2xl shadow-xl transform active:scale-95 transition-all text-xl uppercase tracking-widest">
+                    Vẽ đồ thị và trình bày
+                </button>
+            </div>
+        </div>
+
+        <div id="resultArea" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b-2 border-blue-100 pb-4">
+                    <span class="text-blue-800 italic text-2xl">✎</span> Lời giải tự luận
+                </h2>
+                <div id="stepsOutput" class="space-y-6 text-lg text-slate-700"></div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b-2 border-blue-100 pb-4 flex justify-between items-center">
+                    <span><span class="text-blue-800 italic text-2xl">📈</span> Đồ thị Oxy</span>
+                    <button onclick="resetZoom()" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-1 rounded-full text-sm font-bold transition-colors shadow-sm uppercase">Về gốc (0,0)</button>
+                </h2>
+                <div id="chart-container" class="w-full h-[550px] relative border-2 border-slate-100 rounded-xl overflow-hidden group" ondblclick="toggleFullScreen()">
+                    <canvas id="myChart"></canvas>
+                    <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded border shadow-sm pointer-events-none text-[10px] font-bold text-slate-600 uppercase">
+                        Bấm điểm để xem tọa độ • Zoom bằng con lăn • Kéo di chuyển
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="fullscreen-overlay" ondblclick="toggleFullScreen()">
+        <div class="flex justify-between items-center mb-4 px-4">
+            <h2 class="text-xl font-bold text-blue-900 uppercase">Chế độ tương tác (Full Screen)</h2>
+            <div class="flex gap-2">
+                <button onclick="resetZoomFS()" class="bg-slate-200 px-4 py-2 rounded-lg font-bold hover:bg-slate-300">VỀ GỐC (0,0)</button>
+                <button onclick="toggleFullScreen()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700">ĐÓNG (EXIT)</button>
+            </div>
+        </div>
+        <div id="fullscreen-chart-wrapper" class="flex-grow w-full h-full relative border-2 border-slate-200 rounded-xl overflow-hidden">
+            <canvas id="myChartFullscreen"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let myChart = null;
+        let myChartFS = null;
+        let currentGraphData = null;
+
+        // Đăng ký Plugin Zoom
+        Chart.register(ChartZoom);
+
+        // Plugin vẽ trục Oxy đậm nét và nhãn bám dính thông minh
+        const customAxisPlugin = {
+            id: 'customAxisPlugin',
+            afterDraw: (chart) => {
+                const { ctx, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
+                const xZero = x.getPixelForValue(0);
+                const yZero = y.getPixelForValue(0);
+
+                ctx.save();
+                ctx.strokeStyle = '#000000';
+                ctx.fillStyle = '#000000';
+                ctx.lineWidth = 3.5;
+                ctx.font = 'bold 20px "Inter", sans-serif';
+
+                // --- 1. Vẽ Trục Hoành Ox ---
+                if (yZero >= top && yZero <= bottom) {
+                    ctx.beginPath();
+                    ctx.moveTo(left, yZero);
+                    ctx.lineTo(right, yZero);
+                    ctx.stroke();
+
+                    // Mũi tên x luôn nằm ở lề phải vùng nhìn thấy
+                    ctx.beginPath();
+                    ctx.moveTo(right - 12, yZero - 8);
+                    ctx.lineTo(right, yZero);
+                    ctx.lineTo(right - 12, yZero + 8);
+                    ctx.fill();
+                    ctx.fillText('x', right - 20, yZero + 28);
+                }
+
+                // --- 2. Vẽ Trục Tung Oy ---
+                if (xZero >= left && xZero <= right) {
+                    ctx.beginPath();
+                    ctx.moveTo(xZero, bottom);
+                    ctx.lineTo(xZero, top);
+                    ctx.stroke();
+
+                    // Mũi tên y luôn nằm ở lề trên vùng nhìn thấy
+                    ctx.beginPath();
+                    ctx.moveTo(xZero - 8, top + 12);
+                    ctx.lineTo(xZero, top);
+                    ctx.lineTo(xZero + 8, top + 12);
+                    ctx.fill();
+                    ctx.fillText('y', xZero + 15, top + 20);
+                }
+
+                // --- 3. Gốc tọa độ O ---
+                if (xZero >= left && xZero <= right && yZero >= top && yZero <= bottom) {
+                    ctx.fillText('O', xZero - 22, yZero + 22);
+                }
+                ctx.restore();
+            }
+        };
+
+        Chart.register(customAxisPlugin);
+
+        function gcd(a, b) { return b ? gcd(b, a % b) : Math.abs(a); }
+
+        function formatMath(num) {
+            if (num === 0) return "0";
+            if (Number.isInteger(num)) return num.toString();
+            const precision = 1000;
+            let n = Math.round(num * precision);
+            let d = precision;
+            let common = gcd(n, d);
+            n /= common; d /= common;
+            if (d === 1) return n.toString();
+            if (d > 30) return num.toFixed(2).replace(/\.?0+$/, "");
+            return `\\frac{${n}}{${d}}`;
+        }
+
+        function formatSimple(num) {
+            if (Number.isInteger(num)) return num.toString();
+            return num.toFixed(2).replace(/\.?0+$/, "");
+        }
+
+        function selectType(type) {
+            document.getElementById('selectedType').value = type;
+            document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
+            const containerB = document.getElementById('containerB');
+            if(type === 'linear') {
+                document.getElementById('btnBacNhat').classList.add('active');
+                containerB.classList.remove('hidden');
+            } else {
+                document.getElementById('btnBacHai').classList.add('active');
+                containerB.classList.add('hidden');
+                document.getElementById('inputB').value = 0;
+            }
+        }
+
+        function toggleFullScreen() {
+            const overlay = document.getElementById('fullscreen-overlay');
+            const isActive = overlay.classList.toggle('active');
+            if (isActive && currentGraphData) {
+                setTimeout(() => renderChart('myChartFullscreen', true), 50);
+            } else if (myChartFS) {
+                myChartFS.destroy();
+                myChartFS = null;
+            }
+        }
+
+        function resetZoom() { if (myChart) myChart.resetZoom(); }
+        function resetZoomFS() { if (myChartFS) myChartFS.resetZoom(); }
+
+        function drawGraph() {
+            const a = parseFloat(document.getElementById('inputA').value);
+            const type = document.getElementById('selectedType').value;
+            const b = (type === 'quadratic') ? 0 : (parseFloat(document.getElementById('inputB').value) || 0);
+            
+            if (isNaN(a) || a === 0) {
+                alert("Vui lòng nhập hệ số a khác 0!");
+                return;
+            }
+
+            const resultArea = document.getElementById('resultArea');
+            const output = document.getElementById('stepsOutput');
+            resultArea.classList.remove('hidden');
+            
+            let steps = "";
+            let curve = [];
+            let keys = [];
+            let guides = [];
+
+            if (type === 'linear') {
+                steps += `<div class="step-box p-4 rounded-r-xl">
+                    <p class="font-bold text-blue-900 mb-2 text-xl">Bước 1: Tìm hai điểm đặc biệt</p>
+                    <p>Hàm số: $y = ${formatMath(a)}x ${b >= 0 ? '+ ' + b : '- ' + Math.abs(b)}$</p>`;
+                if (b !== 0) {
+                    let xVal = -b / a;
+                    keys.push({x: 0, y: b, type: 'key'}, {x: xVal, y: 0, type: 'key'});
+                    steps += `<p>• Cho $x = 0$ ta được $y = ${b}$, điểm $A(0; ${b})$.</p>
+                             <p>• Cho $y = 0$ ta được $x = ${formatMath(xVal)}$, điểm $B(${formatMath(xVal)}; 0)$.</p>`;
+                } else {
+                    keys.push({x: 0, y: 0, type: 'key'}, {x: 1, y: a, type: 'key'});
+                    steps += `<p>• Đồ thị đi qua gốc tọa độ $O(0; 0)$.</p>
+                             <p>• Cho $x = 1$ ta được $y = ${a}$, điểm $A(1; ${a})$.</p>`;
+                    guides.push([{x: 1, y: 0}, {x: 1, y: a}, {x: 0, y: a}]);
+                }
+                steps += `</div><div class="step-box p-4 rounded-r-xl"><p class="font-bold text-blue-900 text-xl">Bước 2: Vẽ đồ thị</p><p>Đồ thị là đường thẳng đi qua các điểm đã chọn.</p></div>`;
+                for (let x = -500; x <= 500; x += 1) curve.push({x: x, y: a * x + b});
+            } else {
+                const xVals = [-2, -1, 0, 1, 2];
+                steps += `<div class="step-box p-4 rounded-r-xl"><p class="font-bold text-blue-900 mb-2 text-xl">Bước 1: Bảng giá trị</p>
+                    <table class="w-full mt-3 bg-white shadow-sm">
+                        <tr class="bg-blue-50 font-bold text-lg"><th>$x$</th>${xVals.map(x => `<td>${x}</td>`).join('')}</tr>
+                        <tr class="text-lg"><th>$y = ${formatMath(a)}x^2$</th>${xVals.map(x => `<td>$${formatMath(a*x*x)}$</td>`).join('')}</tr>
+                    </table></div>`;
+                xVals.forEach(x => {
+                    const y = a * x * x;
+                    keys.push({ x: x, y: y, type: 'key' });
+                    if (x !== 0) guides.push([{x: x, y: 0}, {x: x, y: y}, {x: 0, y: y}]);
+                });
+                steps += `<div class="step-box p-4 rounded-r-xl"><p class="font-bold text-blue-900 mb-2 text-xl">Bước 2: Vẽ đồ thị</p>
+                    <p>Đồ thị là đường cong Parabol đi qua $O(0;0)$, nhận trục tung $Oy$ làm trục đối xứng.</p></div>`;
+                for (let x = -200; x <= 200; x += 0.1) curve.push({x: x, y: a * x * x});
+            }
+
+            output.innerHTML = steps;
+            if (window.MathJax) MathJax.typesetPromise([output]);
+            
+            currentGraphData = { curve, keys, guides, tension: type === 'linear' ? 0 : 0.4 };
+            renderChart('myChart', false);
+        }
+
+        function renderChart(canvasId, isFS) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const data = currentGraphData;
+            let instance = isFS ? myChartFS : myChart;
+            if (instance) instance.destroy();
+
+            const guideSets = data.guides.map(line => ({
+                data: line, borderColor: '#000000', borderDash: [10, 5], borderWidth: 3, pointRadius: 0, fill: false, showLine: true
+            }));
+
+            const config = {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        { label: 'Đồ thị', data: data.curve, borderColor: '#1e40af', borderWidth: isFS ? 6 : 4, showLine: true, pointRadius: 0, fill: false, tension: data.tension },
+                        { label: 'Điểm khảo sát', data: data.keys, backgroundColor: '#dc2626', pointRadius: isFS ? 10 : 8, pointHoverRadius: 12, showLine: false },
+                        ...guideSets
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    layout: { padding: { right: 50, top: 50, left: 30, bottom: 30 } },
+                    scales: {
+                        x: { 
+                            type: 'linear', position: 'center', grid: { color: '#e2e8f0', lineWidth: 1 }, 
+                            ticks: { font: { weight: 'bold', size: isFS ? 16 : 14 }, stepSize: 1, z: 2 }, 
+                            min: -6, max: 6 
+                        },
+                        y: { 
+                            type: 'linear', position: 'center', grid: { color: '#e2e8f0', lineWidth: 1 }, 
+                            ticks: { font: { weight: 'bold', size: isFS ? 16 : 14 }, stepSize: 1, z: 2 }, 
+                            min: -10, max: 10 
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: { 
+                            enabled: true,
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 16 },
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: (context) => {
+                                    if (context.datasetIndex === 1) {
+                                        return `Tọa độ: (${formatSimple(context.raw.x)}; ${formatSimple(context.raw.y)})`;
+                                    }
+                                    return null;
+                                }
+                            }
+                        },
+                        zoom: { 
+                            pan: { enabled: true, mode: 'xy', threshold: 10 }, 
+                            zoom: { 
+                                wheel: { enabled: true, speed: 0.05 }, 
+                                pinch: { enabled: true }, 
+                                mode: 'xy',
+                                // Quan trọng: Khóa tâm Zoom khi dùng lăn chuột
+                                drag: false,
+                            } 
+                        }
+                    }
+                }
+            };
+
+            const chartInstance = new Chart(ctx, config);
+            if (isFS) myChartFS = chartInstance; else myChart = chartInstance;
+        }
+
+        window.onload = () => selectType('linear');
+    </script>
+</body>
+</html>

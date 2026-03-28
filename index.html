@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Công cụ Vẽ Đồ Thị Hàm Số - Chuẩn Sư Phạm</title>
+    <title>Công cụ Vẽ Đồ Thị Hàm Số - Chuẩn Sư Phạm Việt Nam</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
@@ -26,11 +26,46 @@
         canvas { background-color: #ffffff; cursor: grab; }
         canvas:active { cursor: grabbing; }
         table th, table td { border: 1px solid #cbd5e1; padding: 0.5rem; text-align: center; }
+        
+        /* Chế độ phóng to toàn màn hình */
         #fullscreen-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; z-index: 9999; padding: 20px; flex-direction: column;
+            background: white; z-index: 9999; padding: 15px; flex-direction: column;
         }
         #fullscreen-overlay.active { display: flex; }
+
+        /* Style cho bộ nút Zoom di động */
+        .zoom-controls {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 10;
+        }
+        .zoom-btn {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #1e40af;
+            color: #1e40af;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        .zoom-btn:active {
+            background: #1e40af;
+            color: white;
+            transform: scale(0.9);
+        }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen py-10 px-4">
@@ -38,7 +73,7 @@
         <div class="bg-white rounded-2xl shadow-2xl overflow-hidden mb-8 border border-slate-200">
             <div class="bg-blue-800 p-6 text-white text-center">
                 <h1 class="text-2xl md:text-3xl font-bold uppercase tracking-wide text-white">Vẽ Đồ Thị - Chuẩn Sư Phạm Việt Nam</h1>
-                <p class="mt-2 opacity-90 italic">Trục đậm nét • Không lệch tâm khi Zoom • Hiện tọa độ điểm</p>
+                <p class="mt-2 opacity-90 italic">Trục đậm nét • Đầy đủ mũi tên • Hỗ trợ Zoom trên điện thoại</p>
             </div>
             
             <div class="p-8">
@@ -82,29 +117,42 @@
 
             <div class="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
                 <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b-2 border-blue-100 pb-4 flex justify-between items-center">
-                    <span><span class="text-blue-800 italic text-2xl">📈</span> Đồ thị Oxy</span>
-                    <button onclick="resetZoom()" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-1 rounded-full text-sm font-bold transition-colors shadow-sm uppercase">Về gốc (0,0)</button>
+                    <span><span class="text-blue-800 italic text-2xl">📈</span> Hình vẽ</span>
+                    <button onclick="resetZoom()" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-1 rounded-full text-xs font-bold transition-colors shadow-sm">VỀ GỐC (0,0)</button>
                 </h2>
-                <div id="chart-container" class="w-full h-[550px] relative border-2 border-slate-100 rounded-xl overflow-hidden group" ondblclick="toggleFullScreen()">
-                    <canvas id="myChart"></canvas>
-                    <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded border shadow-sm pointer-events-none text-[10px] font-bold text-slate-600 uppercase">
-                        Bấm điểm để xem tọa độ • Zoom bằng con lăn • Kéo di chuyển
+                <div id="chart-container" class="w-full h-[550px] relative border-2 border-slate-100 rounded-xl overflow-hidden group">
+                    <canvas id="myChart" ondblclick="toggleFullScreen()"></canvas>
+                    
+                    <!-- Zoom Controls cho Mobile -->
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" onclick="manualZoom(1.2)" title="Phóng to">+</button>
+                        <button class="zoom-btn" onclick="manualZoom(0.8)" title="Thu nhỏ">−</button>
+                    </div>
+
+                    <div class="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded border shadow-sm pointer-events-none text-[10px] font-bold text-slate-600 uppercase">
+                        Bấm điểm xem tọa độ • Thu phóng bằng nút hoặc cuộn • Kích đúp phóng to
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="fullscreen-overlay" ondblclick="toggleFullScreen()">
+    <div id="fullscreen-overlay">
         <div class="flex justify-between items-center mb-4 px-4">
-            <h2 class="text-xl font-bold text-blue-900 uppercase">Chế độ tương tác (Full Screen)</h2>
+            <h2 class="text-xl font-bold text-blue-900 uppercase">Toàn màn hình</h2>
             <div class="flex gap-2">
-                <button onclick="resetZoomFS()" class="bg-slate-200 px-4 py-2 rounded-lg font-bold hover:bg-slate-300">VỀ GỐC (0,0)</button>
-                <button onclick="toggleFullScreen()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700">ĐÓNG (EXIT)</button>
+                <button onclick="resetZoomFS()" class="bg-slate-200 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 text-sm">VỀ GỐC</button>
+                <button onclick="toggleFullScreen()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700 text-sm">ĐÓNG</button>
             </div>
         </div>
         <div id="fullscreen-chart-wrapper" class="flex-grow w-full h-full relative border-2 border-slate-200 rounded-xl overflow-hidden">
-            <canvas id="myChartFullscreen"></canvas>
+            <canvas id="myChartFullscreen" ondblclick="toggleFullScreen()"></canvas>
+            
+            <!-- Zoom Controls cho Fullscreen -->
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="manualZoomFS(1.2)">+</button>
+                <button class="zoom-btn" onclick="manualZoomFS(0.8)">−</button>
+            </div>
         </div>
     </div>
 
@@ -113,10 +161,10 @@
         let myChartFS = null;
         let currentGraphData = null;
 
-        // Đăng ký Plugin Zoom
+        // Đăng ký Zoom
         Chart.register(ChartZoom);
 
-        // Plugin vẽ trục Oxy đậm nét và nhãn bám dính thông minh
+        // Plugin trục Oxy bám dính thông minh
         const customAxisPlugin = {
             id: 'customAxisPlugin',
             afterDraw: (chart) => {
@@ -130,14 +178,11 @@
                 ctx.lineWidth = 3.5;
                 ctx.font = 'bold 20px "Inter", sans-serif';
 
-                // --- 1. Vẽ Trục Hoành Ox ---
                 if (yZero >= top && yZero <= bottom) {
                     ctx.beginPath();
                     ctx.moveTo(left, yZero);
                     ctx.lineTo(right, yZero);
                     ctx.stroke();
-
-                    // Mũi tên x luôn nằm ở lề phải vùng nhìn thấy
                     ctx.beginPath();
                     ctx.moveTo(right - 12, yZero - 8);
                     ctx.lineTo(right, yZero);
@@ -146,14 +191,11 @@
                     ctx.fillText('x', right - 20, yZero + 28);
                 }
 
-                // --- 2. Vẽ Trục Tung Oy ---
                 if (xZero >= left && xZero <= right) {
                     ctx.beginPath();
                     ctx.moveTo(xZero, bottom);
                     ctx.lineTo(xZero, top);
                     ctx.stroke();
-
-                    // Mũi tên y luôn nằm ở lề trên vùng nhìn thấy
                     ctx.beginPath();
                     ctx.moveTo(xZero - 8, top + 12);
                     ctx.lineTo(xZero, top);
@@ -162,7 +204,6 @@
                     ctx.fillText('y', xZero + 15, top + 20);
                 }
 
-                // --- 3. Gốc tọa độ O ---
                 if (xZero >= left && xZero <= right && yZero >= top && yZero <= bottom) {
                     ctx.fillText('O', xZero - 22, yZero + 22);
                 }
@@ -217,6 +258,9 @@
             }
         }
 
+        // Các hàm thu phóng thủ công cho nút bấm
+        function manualZoom(factor) { if (myChart) myChart.zoom(factor); }
+        function manualZoomFS(factor) { if (myChartFS) myChartFS.zoom(factor); }
         function resetZoom() { if (myChart) myChart.resetZoom(); }
         function resetZoomFS() { if (myChartFS) myChartFS.resetZoom(); }
 
@@ -301,7 +345,7 @@
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    layout: { padding: { right: 50, top: 50, left: 30, bottom: 30 } },
+                    layout: { padding: { right: 60, top: 50, left: 30, bottom: 30 } },
                     scales: {
                         x: { 
                             type: 'linear', position: 'center', grid: { color: '#e2e8f0', lineWidth: 1 }, 
@@ -338,7 +382,6 @@
                                 wheel: { enabled: true, speed: 0.05 }, 
                                 pinch: { enabled: true }, 
                                 mode: 'xy',
-                                // Quan trọng: Khóa tâm Zoom khi dùng lăn chuột
                                 drag: false,
                             } 
                         }

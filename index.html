@@ -23,49 +23,29 @@
         body { font-family: 'Inter', sans-serif; }
         .step-box { border-left: 6px solid #1e40af; background-color: #f8fafc; }
         .method-btn.active { background-color: #1e40af; color: white; border-color: #1e40af; }
+        .sub-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
         canvas { background-color: #ffffff; cursor: grab; }
         canvas:active { cursor: grabbing; }
         table th, table td { border: 1px solid #cbd5e1; padding: 0.5rem; text-align: center; }
         
-        /* Chế độ phóng to toàn màn hình */
         #fullscreen-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: white; z-index: 9999; padding: 15px; flex-direction: column;
         }
         #fullscreen-overlay.active { display: flex; }
 
-        /* Style cho bộ nút Zoom di động */
         .zoom-controls {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 10;
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 10px; z-index: 10;
         }
         .zoom-btn {
-            width: 45px;
-            height: 45px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #1e40af;
-            color: #1e40af;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            transition: all 0.2s;
-            touch-action: manipulation;
+            width: 45px; height: 45px; background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #1e40af; color: #1e40af; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            transition: all 0.2s; touch-action: manipulation;
         }
-        .zoom-btn:active {
-            background: #1e40af;
-            color: white;
-            transform: scale(0.9);
-        }
+        .zoom-btn:active { background: #1e40af; color: white; transform: scale(0.9); }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen py-10 px-4">
@@ -73,7 +53,7 @@
         <div class="bg-white rounded-2xl shadow-2xl overflow-hidden mb-8 border border-slate-200">
             <div class="bg-blue-800 p-6 text-white text-center">
                 <h1 class="text-2xl md:text-3xl font-bold uppercase tracking-wide text-white">Vẽ Đồ Thị - Chuẩn Sư Phạm Việt Nam</h1>
-                <p class="mt-2 opacity-90 italic">Trục đậm nét • Đầy đủ mũi tên • Hỗ trợ Zoom trên điện thoại</p>
+                <p class="mt-2 opacity-90 italic">Trục đậm nét • Không lệch tâm khi Zoom • Hiện tọa độ điểm</p>
             </div>
             
             <div class="p-8">
@@ -90,6 +70,16 @@
                     <input type="hidden" id="selectedType" value="linear">
                 </div>
 
+                <!-- Linear Selection Method (Sub-options) -->
+                <div id="linearMethodContainer" class="mb-8 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-3 text-center">Cách chọn điểm để vẽ đường thẳng</label>
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button id="linearMethod1" onclick="selectLinearMethod(1)" class="sub-btn active px-4 py-2 border-2 border-blue-200 rounded-lg text-sm font-semibold transition-all">Cách 1: Tìm giao điểm 2 trục</button>
+                        <button id="linearMethod2" onclick="selectLinearMethod(2)" class="sub-btn px-4 py-2 border-2 border-blue-200 rounded-lg text-sm font-semibold transition-all">Cách 2: Chọn 2 giá trị $x \neq 0$</button>
+                    </div>
+                    <input type="hidden" id="linearMethod" value="1">
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     <div>
                         <label class="text-sm font-bold text-slate-600 uppercase ml-1">Hệ số $a$</label>
@@ -101,7 +91,7 @@
                     </div>
                 </div>
 
-                <button onclick="drawGraph()" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-5 rounded-2xl shadow-xl transform active:scale-95 transition-all text-xl uppercase tracking-widest">
+                <button onclick="drawGraph()" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-5 rounded-2xl shadow-xl transform active:scale-95 transition-all text-xl uppercase tracking-widest text-white">
                     Vẽ đồ thị và trình bày
                 </button>
             </div>
@@ -117,20 +107,17 @@
 
             <div class="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
                 <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b-2 border-blue-100 pb-4 flex justify-between items-center">
-                    <span><span class="text-blue-800 italic text-2xl">📈</span> Hình vẽ</span>
-                    <button onclick="resetZoom()" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-1 rounded-full text-xs font-bold transition-colors shadow-sm">VỀ GỐC (0,0)</button>
+                    <span><span class="text-blue-800 italic text-2xl">📈</span> Đồ thị Oxy</span>
+                    <button onclick="resetZoom()" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-4 py-1 rounded-full text-sm font-bold transition-colors shadow-sm uppercase">Về gốc (0,0)</button>
                 </h2>
                 <div id="chart-container" class="w-full h-[550px] relative border-2 border-slate-100 rounded-xl overflow-hidden group">
                     <canvas id="myChart" ondblclick="toggleFullScreen()"></canvas>
-                    
-                    <!-- Zoom Controls cho Mobile -->
                     <div class="zoom-controls">
                         <button class="zoom-btn" onclick="manualZoom(1.2)" title="Phóng to">+</button>
                         <button class="zoom-btn" onclick="manualZoom(0.8)" title="Thu nhỏ">−</button>
                     </div>
-
-                    <div class="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm px-3 py-1 rounded border shadow-sm pointer-events-none text-[10px] font-bold text-slate-600 uppercase">
-                        Bấm điểm xem tọa độ • Thu phóng bằng nút hoặc cuộn • Kích đúp phóng to
+                    <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded border shadow-sm pointer-events-none text-[10px] font-bold text-slate-600 uppercase">
+                        Bấm điểm để xem tọa độ • Zoom bằng nút/con lăn • Kéo di chuyển
                     </div>
                 </div>
             </div>
@@ -138,17 +125,15 @@
     </div>
 
     <div id="fullscreen-overlay">
-        <div class="flex justify-between items-center mb-4 px-4">
-            <h2 class="text-xl font-bold text-blue-900 uppercase">Toàn màn hình</h2>
+        <div class="flex justify-between items-center mb-4 px-4 text-white bg-blue-800 p-2 rounded-t-lg">
+            <h2 class="text-xl font-bold uppercase">Toàn màn hình</h2>
             <div class="flex gap-2">
-                <button onclick="resetZoomFS()" class="bg-slate-200 px-4 py-2 rounded-lg font-bold hover:bg-slate-300 text-sm">VỀ GỐC</button>
-                <button onclick="toggleFullScreen()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700 text-sm">ĐÓNG</button>
+                <button onclick="resetZoomFS()" class="bg-white text-blue-800 px-4 py-2 rounded-lg font-bold hover:bg-slate-100">VỀ GỐC</button>
+                <button onclick="toggleFullScreen()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-700">ĐÓNG</button>
             </div>
         </div>
-        <div id="fullscreen-chart-wrapper" class="flex-grow w-full h-full relative border-2 border-slate-200 rounded-xl overflow-hidden">
+        <div id="fullscreen-chart-wrapper" class="flex-grow w-full h-full relative border-2 border-slate-200 rounded-b-xl overflow-hidden">
             <canvas id="myChartFullscreen" ondblclick="toggleFullScreen()"></canvas>
-            
-            <!-- Zoom Controls cho Fullscreen -->
             <div class="zoom-controls">
                 <button class="zoom-btn" onclick="manualZoomFS(1.2)">+</button>
                 <button class="zoom-btn" onclick="manualZoomFS(0.8)">−</button>
@@ -161,10 +146,8 @@
         let myChartFS = null;
         let currentGraphData = null;
 
-        // Đăng ký Zoom
         Chart.register(ChartZoom);
 
-        // Plugin trục Oxy bám dính thông minh
         const customAxisPlugin = {
             id: 'customAxisPlugin',
             afterDraw: (chart) => {
@@ -237,14 +220,24 @@
             document.getElementById('selectedType').value = type;
             document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
             const containerB = document.getElementById('containerB');
+            const linearMethodContainer = document.getElementById('linearMethodContainer');
+            
             if(type === 'linear') {
                 document.getElementById('btnBacNhat').classList.add('active');
                 containerB.classList.remove('hidden');
+                linearMethodContainer.classList.remove('hidden');
             } else {
                 document.getElementById('btnBacHai').classList.add('active');
                 containerB.classList.add('hidden');
+                linearMethodContainer.classList.add('hidden');
                 document.getElementById('inputB').value = 0;
             }
+        }
+
+        function selectLinearMethod(m) {
+            document.getElementById('linearMethod').value = m;
+            document.querySelectorAll('.sub-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('linearMethod' + m).classList.add('active');
         }
 
         function toggleFullScreen() {
@@ -258,7 +251,6 @@
             }
         }
 
-        // Các hàm thu phóng thủ công cho nút bấm
         function manualZoom(factor) { if (myChart) myChart.zoom(factor); }
         function manualZoomFS(factor) { if (myChartFS) myChartFS.zoom(factor); }
         function resetZoom() { if (myChart) myChart.resetZoom(); }
@@ -268,6 +260,7 @@
             const a = parseFloat(document.getElementById('inputA').value);
             const type = document.getElementById('selectedType').value;
             const b = (type === 'quadratic') ? 0 : (parseFloat(document.getElementById('inputB').value) || 0);
+            const linearM = parseInt(document.getElementById('linearMethod').value);
             
             if (isNaN(a) || a === 0) {
                 alert("Vui lòng nhập hệ số a khác 0!");
@@ -285,18 +278,31 @@
 
             if (type === 'linear') {
                 steps += `<div class="step-box p-4 rounded-r-xl">
-                    <p class="font-bold text-blue-900 mb-2 text-xl">Bước 1: Tìm hai điểm đặc biệt</p>
+                    <p class="font-bold text-blue-900 mb-2 text-xl">Bước 1: Xác định hai điểm thuộc đồ thị</p>
                     <p>Hàm số: $y = ${formatMath(a)}x ${b >= 0 ? '+ ' + b : '- ' + Math.abs(b)}$</p>`;
-                if (b !== 0) {
-                    let xVal = -b / a;
-                    keys.push({x: 0, y: b, type: 'key'}, {x: xVal, y: 0, type: 'key'});
-                    steps += `<p>• Cho $x = 0$ ta được $y = ${b}$, điểm $A(0; ${b})$.</p>
-                             <p>• Cho $y = 0$ ta được $x = ${formatMath(xVal)}$, điểm $B(${formatMath(xVal)}; 0)$.</p>`;
+                
+                if (linearM === 1) {
+                    // Cách 1: Giao điểm trục
+                    if (b !== 0) {
+                        let xVal = -b / a;
+                        keys.push({x: 0, y: b, type: 'key'}, {x: xVal, y: 0, type: 'key'});
+                        steps += `<p>• Cho $x = 0$ ta được $y = ${b}$, điểm $A(0; ${b})$.</p>
+                                 <p>• Cho $y = 0$ ta được $x = ${formatMath(xVal)}$, điểm $B(${formatMath(xVal)}; 0)$.</p>`;
+                    } else {
+                        keys.push({x: 0, y: 0, type: 'key'}, {x: 1, y: a, type: 'key'});
+                        steps += `<p>• Đồ thị đi qua gốc tọa độ $O(0; 0)$.</p>
+                                 <p>• Cho $x = 1$ ta được $y = ${a}$, điểm $A(1; ${a})$.</p>`;
+                        guides.push([{x: 1, y: 0}, {x: 1, y: a}, {x: 0, y: a}]);
+                    }
                 } else {
-                    keys.push({x: 0, y: 0, type: 'key'}, {x: 1, y: a, type: 'key'});
-                    steps += `<p>• Đồ thị đi qua gốc tọa độ $O(0; 0)$.</p>
-                             <p>• Cho $x = 1$ ta được $y = ${a}$, điểm $A(1; ${a})$.</p>`;
-                    guides.push([{x: 1, y: 0}, {x: 1, y: a}, {x: 0, y: a}]);
+                    // Cách 2: Hai giá trị x bất kì (1 và 2)
+                    let y1 = a * 1 + b;
+                    let y2 = a * 2 + b;
+                    keys.push({x: 1, y: y1, type: 'key'}, {x: 2, y: y2, type: 'key'});
+                    steps += `<p>• Cho $x = 1$ ta được $y = ${formatMath(y1)}$, điểm $A(1; ${formatMath(y1)})$.</p>
+                             <p>• Cho $x = 2$ ta được $y = ${formatMath(y2)}$, điểm $B(2; ${formatMath(y2)})$.</p>`;
+                    guides.push([{x: 1, y: 0}, {x: 1, y: y1}, {x: 0, y: y1}]);
+                    guides.push([{x: 2, y: 0}, {x: 2, y: y2}, {x: 0, y: y2}]);
                 }
                 steps += `</div><div class="step-box p-4 rounded-r-xl"><p class="font-bold text-blue-900 text-xl">Bước 2: Vẽ đồ thị</p><p>Đồ thị là đường thẳng đi qua các điểm đã chọn.</p></div>`;
                 for (let x = -500; x <= 500; x += 1) curve.push({x: x, y: a * x + b});
@@ -319,7 +325,6 @@
 
             output.innerHTML = steps;
             if (window.MathJax) MathJax.typesetPromise([output]);
-            
             currentGraphData = { curve, keys, guides, tension: type === 'linear' ? 0 : 0.4 };
             renderChart('myChart', false);
         }
@@ -345,45 +350,22 @@
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    layout: { padding: { right: 60, top: 50, left: 30, bottom: 30 } },
+                    layout: { padding: { right: 50, top: 50, left: 30, bottom: 30 } },
                     scales: {
-                        x: { 
-                            type: 'linear', position: 'center', grid: { color: '#e2e8f0', lineWidth: 1 }, 
-                            ticks: { font: { weight: 'bold', size: isFS ? 16 : 14 }, stepSize: 1, z: 2 }, 
-                            min: -6, max: 6 
-                        },
-                        y: { 
-                            type: 'linear', position: 'center', grid: { color: '#e2e8f0', lineWidth: 1 }, 
-                            ticks: { font: { weight: 'bold', size: isFS ? 16 : 14 }, stepSize: 1, z: 2 }, 
-                            min: -10, max: 10 
-                        }
+                        x: { type: 'linear', position: 'center', grid: { color: '#e2e8f0', lineWidth: 1 }, ticks: { font: { weight: 'bold', size: isFS ? 16 : 14 }, stepSize: 1, z: 2 }, min: -6, max: 6 },
+                        y: { type: 'linear', position: 'center', grid: { color: '#e2e8f0', lineWidth: 1 }, ticks: { font: { weight: 'bold', size: isFS ? 16 : 14 }, stepSize: 1, z: 2 }, min: -10, max: 10 }
                     },
                     plugins: { 
                         legend: { display: false }, 
                         tooltip: { 
-                            enabled: true,
-                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 16 },
-                            padding: 12,
-                            displayColors: false,
+                            enabled: true, backgroundColor: 'rgba(30, 41, 59, 0.9)', padding: 12, displayColors: false,
                             callbacks: {
-                                label: (context) => {
-                                    if (context.datasetIndex === 1) {
-                                        return `Tọa độ: (${formatSimple(context.raw.x)}; ${formatSimple(context.raw.y)})`;
-                                    }
-                                    return null;
-                                }
+                                label: (context) => (context.datasetIndex === 1) ? `Tọa độ: (${formatSimple(context.raw.x)}; ${formatSimple(context.raw.y)})` : null
                             }
                         },
                         zoom: { 
                             pan: { enabled: true, mode: 'xy', threshold: 10 }, 
-                            zoom: { 
-                                wheel: { enabled: true, speed: 0.05 }, 
-                                pinch: { enabled: true }, 
-                                mode: 'xy',
-                                drag: false,
-                            } 
+                            zoom: { wheel: { enabled: true, speed: 0.05 }, pinch: { enabled: true }, mode: 'xy', drag: false } 
                         }
                     }
                 }

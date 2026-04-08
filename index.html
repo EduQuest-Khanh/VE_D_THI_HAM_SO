@@ -277,11 +277,11 @@
             let guides = [];
 
             if (type === 'linear') {
-                steps += `<div class="step-box p-4 rounded-r-xl">
-                    <p class="font-bold text-blue-900 mb-2 text-xl">Bước 1: Xác định hai điểm thuộc đồ thị</p>
-                    <p>Hàm số: $y = ${formatMath(a)}x ${b >= 0 ? '+ ' + b : '- ' + Math.abs(b)}$</p>`;
-                
                 if (linearM === 1) {
+                    steps += `<div class="step-box p-4 rounded-r-xl">
+                        <p class="font-bold text-blue-900 mb-2 text-xl">Bước 1: Xác định hai điểm thuộc đồ thị</p>
+                        <p>Hàm số: $y = ${formatMath(a)}x ${b >= 0 ? '+ ' + b : '- ' + Math.abs(b)}$</p>`;
+                    
                     // Cách 1: Giao điểm trục
                     if (b !== 0) {
                         let xVal = -b / a;
@@ -294,17 +294,49 @@
                                  <p>• Cho $x = 1$ ta được $y = ${a}$, điểm $A(1; ${a})$.</p>`;
                         guides.push([{x: 1, y: 0}, {x: 1, y: a}, {x: 0, y: a}]);
                     }
+                    steps += `</div>`;
                 } else {
-                    // Cách 2: Hai giá trị x bất kì (1 và 2)
-                    let y1 = a * 1 + b;
-                    let y2 = a * 2 + b;
-                    keys.push({x: 1, y: y1, type: 'key'}, {x: 2, y: y2, type: 'key'});
-                    steps += `<p>• Cho $x = 1$ ta được $y = ${formatMath(y1)}$, điểm $A(1; ${formatMath(y1)})$.</p>
-                             <p>• Cho $x = 2$ ta được $y = ${formatMath(y2)}$, điểm $B(2; ${formatMath(y2)})$.</p>`;
-                    guides.push([{x: 1, y: 0}, {x: 1, y: y1}, {x: 0, y: y1}]);
-                    guides.push([{x: 2, y: 0}, {x: 2, y: y2}, {x: 0, y: y2}]);
+                    // Cách 2: Chọn 2 giá trị x khác 0, y khác 0
+                    let selectedX = [];
+                    let selectedY = [];
+                    // Danh sách dò tìm ưu tiên các số nhỏ để HS dễ vẽ hình
+                    const candidates = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7];
+                    
+                    for (let x of candidates) {
+                        let y = a * x + b;
+                        if (y !== 0) {
+                            selectedX.push(x);
+                            selectedY.push(y);
+                            if (selectedX.length === 2) break; // Chỉ lấy 2 điểm
+                        }
+                    }
+                    
+                    // Sắp xếp lại để hiển thị x nhỏ lên trước trong bảng cho logic
+                    if (selectedX[0] > selectedX[1]) {
+                        let tempX = selectedX[0]; selectedX[0] = selectedX[1]; selectedX[1] = tempX;
+                        let tempY = selectedY[0]; selectedY[0] = selectedY[1]; selectedY[1] = tempY;
+                    }
+
+                    let x1 = selectedX[0], y1 = selectedY[0];
+                    let x2 = selectedX[1], y2 = selectedY[1];
+
+                    keys.push({x: x1, y: y1, type: 'key'}, {x: x2, y: y2, type: 'key'});
+                    
+                    // Lập bảng giá trị y như Hàm bậc 2
+                    steps += `<div class="step-box p-4 rounded-r-xl">
+                        <p class="font-bold text-blue-900 mb-2 text-xl">Bước 1: Bảng giá trị</p>
+                        <p>Hàm số: $y = ${formatMath(a)}x ${b >= 0 ? '+ ' + b : '- ' + Math.abs(b)}$</p>
+                        <table class="w-full mt-3 bg-white shadow-sm">
+                            <tr class="bg-blue-50 font-bold text-lg"><th>$x$</th><td>${x1}</td><td>${x2}</td></tr>
+                            <tr class="text-lg"><th>$y$</th><td>$${formatMath(y1)}$</td><td>$${formatMath(y2)}$</td></tr>
+                        </table>
+                    </div>`;
+
+                    guides.push([{x: x1, y: 0}, {x: x1, y: y1}, {x: 0, y: y1}]);
+                    guides.push([{x: x2, y: 0}, {x: x2, y: y2}, {x: 0, y: y2}]);
                 }
-                steps += `</div><div class="step-box p-4 rounded-r-xl"><p class="font-bold text-blue-900 text-xl">Bước 2: Vẽ đồ thị</p><p>Đồ thị là đường thẳng đi qua các điểm đã chọn.</p></div>`;
+                
+                steps += `<div class="step-box p-4 rounded-r-xl"><p class="font-bold text-blue-900 text-xl">Bước 2: Vẽ đồ thị</p><p>Đồ thị là đường thẳng đi qua các điểm đã chọn.</p></div>`;
                 for (let x = -500; x <= 500; x += 1) curve.push({x: x, y: a * x + b});
             } else {
                 const xVals = [-2, -1, 0, 1, 2];
